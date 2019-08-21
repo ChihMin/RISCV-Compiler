@@ -1,0 +1,6 @@
+*.o
+tags
+parser
+parser_arm
+.*.swo
+.*.swp
