@@ -455,6 +455,7 @@ void codeGenFunctionDeclaration(AST_NODE *functionDeclNode)
 	}
 
 	//prologue
+#if 0
 	fprintf(g_codeGenOutputFp, "str x30, [sp, #0]\n");
 	fprintf(g_codeGenOutputFp, "str x29, [sp, #-8]\n");
 	fprintf(g_codeGenOutputFp, "add x29, sp, #-8\n");
@@ -462,7 +463,15 @@ void codeGenFunctionDeclaration(AST_NODE *functionDeclNode)
 	fprintf(g_codeGenOutputFp, "ldr x30, =_frameSize_%s\n", functionIdNode->semantic_value.identifierSemanticValue.identifierName);
 	fprintf(g_codeGenOutputFp, "ldr w30, [x30, #0]\n");
 	fprintf(g_codeGenOutputFp, "sub sp, sp, w30\n");
-	printStoreRegister(g_codeGenOutputFp);
+#endif
+	fprintf(g_codeGenOutputFp, "sd ra,0(sp)\n");
+	fprintf(g_codeGenOutputFp, "sd fp,-8(sp)\n");
+	fprintf(g_codeGenOutputFp, "add fp,sp,-8\n");
+	fprintf(g_codeGenOutputFp, "add sp,sp,-16\n");
+	fprintf(g_codeGenOutputFp, "la ra,_frameSize_%s\n", functionIdNode->semantic_value.identifierSemanticValue.identifierName);
+	fprintf(g_codeGenOutputFp, "lw ra,0(ra)\n");
+	fprintf(g_codeGenOutputFp, "sub sp,sp,ra\n");
+    printStoreRegister(g_codeGenOutputFp);
 
 	resetRegisterTable(functionIdNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
 
@@ -474,19 +483,27 @@ void codeGenFunctionDeclaration(AST_NODE *functionDeclNode)
 		traverseListNode = traverseListNode->rightSibling;
 	}
 
-	//epilogue
+#if 0
 	fprintf(g_codeGenOutputFp, "_end_%s:\n", g_currentFunctionName);
 	printRestoreRegister(g_codeGenOutputFp);
 	fprintf(g_codeGenOutputFp, "ldr x30, [x29, #8]\n");
 	fprintf(g_codeGenOutputFp, "mov sp, x29\n");
 	fprintf(g_codeGenOutputFp, "add sp, sp, #8\n");
 	fprintf(g_codeGenOutputFp, "ldr x29, [x29,#0]\n");
+#endif
+	//epilogue
+	fprintf(g_codeGenOutputFp, "_end_%s:\n", g_currentFunctionName);
+	printRestoreRegister(g_codeGenOutputFp);
+	fprintf(g_codeGenOutputFp, "ld ra,8(fp)\n");
+	fprintf(g_codeGenOutputFp, "mv sp,fp\n");
+	fprintf(g_codeGenOutputFp, "add sp,sp,8\n");
+	fprintf(g_codeGenOutputFp, "ld fp,0(fp)\n");
 	if (strcmp(functionIdNode->semantic_value.identifierSemanticValue.identifierName, "main") == 0)
 	{
 	}
 	else
 	{
-		fprintf(g_codeGenOutputFp, "RET x30\n");
+		fprintf(g_codeGenOutputFp, "jr ra\n");
 	}
 	fprintf(g_codeGenOutputFp, ".data\n");
 	int frameSize = abs(functionIdNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR) + 
