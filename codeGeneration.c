@@ -106,7 +106,7 @@ void codeGenPrepareRegister_64(ProcessorType processorType, int regIndex, int ne
 	int realRegisterCount = (processorType == INT_REG) ? INT_REGISTER_COUNT : FLOAT_REGISTER_COUNT;
 	char** realRegisterName = (processorType == INT_REG) ? intRegisterName_64 : floatRegisterName;
 	char** workRegisterName = (processorType == INT_REG) ? intWorkRegisterName_64 : floatWorkRegisterName;
-	char* loadInstruction = (processorType == INT_REG) ? "ldr" : "ldr";
+	char* loadInstruction = (processorType == INT_REG) ? "ld" : "fld";
 
 	if(regIndex >= realRegisterCount)
 	{
@@ -115,9 +115,12 @@ void codeGenPrepareRegister_64(ProcessorType processorType, int regIndex, int ne
 		*regName = workRegisterName[workRegIndexIfPseudo];
 		if(needToBeLoaded)
 		{
-			fprintf(g_codeGenOutputFp, "%s %s, [x29, #%d]\n", loadInstruction, *regName, getPseudoRegisterCorrespondingOffset(pseudoIndex));
-		}
-	}
+            fprintf(
+                g_codeGenOutputFp, "%s %s,%d(fp)\n",
+                loadInstruction, *regName,
+                getPseudoRegisterCorrespondingOffset(pseudoIndex));
+            }
+        }
 	else
 	{
 		*regName = realRegisterName[regIndex];
@@ -797,7 +800,7 @@ void codeGenFunctionCall(AST_NODE* functionCallNode)
 			char* returnIntRegName = NULL;
 			codeGenPrepareRegister(INT_REG, functionCallNode->registerIndex, 0, 0, &returnIntRegName);
 
-			fprintf(g_codeGenOutputFp, "mov %s, w0\n", returnIntRegName);
+			fprintf(g_codeGenOutputFp, "mv %s, a0\n", returnIntRegName);
 
 			codeGenSaveToMemoryIfPsuedoRegister(INT_REG, functionCallNode->registerIndex, returnIntRegName);
 		}
@@ -807,7 +810,7 @@ void codeGenFunctionCall(AST_NODE* functionCallNode)
 			char* returnfloatRegName = NULL;
 			codeGenPrepareRegister(FLOAT_REG, functionCallNode->registerIndex, 0, 0, &returnfloatRegName);
 
-			fprintf(g_codeGenOutputFp, "fmov %s, s0\n", returnfloatRegName);
+			fprintf(g_codeGenOutputFp, "fmv.s %s, s0\n", returnfloatRegName);
 
 			codeGenSaveToMemoryIfPsuedoRegister(INT_REG, functionCallNode->registerIndex, returnfloatRegName);
 		}
@@ -866,7 +869,7 @@ void codeGenVariableReference(AST_NODE* idNode)
 			if(!isGlobalVariable(idNode->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
 				codeGenPrepareRegister(INT_REG, idNode->registerIndex, 0, 0, &loadRegName);
-				fprintf(g_codeGenOutputFp, "ldr %s, [x29, #%d]\n", loadRegName, idAttribute->offsetInAR);
+				fprintf(g_codeGenOutputFp, "lw %s,%d(fp)\n", loadRegName, idAttribute->offsetInAR);
 			}
 			else
 			{
@@ -1006,7 +1009,7 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 			codeGenPrepareRegister(INT_REG, rightOp->registerIndex, 1, 0, &rightOpRegName);
 			if(!isGlobalVariable(leftOp->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
-				fprintf(g_codeGenOutputFp, "str %s, [x29, #%d]\n", rightOpRegName, leftOp->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
+				fprintf(g_codeGenOutputFp, "sw %s,%d(fp)\n", rightOpRegName, leftOp->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
 			}
 			else
 			{		
