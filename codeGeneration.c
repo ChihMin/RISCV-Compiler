@@ -893,9 +893,9 @@ void codeGenVariableReference(AST_NODE* idNode)
             }
 			else
 			{
-				fprintf(g_codeGenOutputFp, "ldr %s, =_g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
+				fprintf(g_codeGenOutputFp, "la %s, _g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
 				codeGenPrepareRegister(FLOAT_REG, idNode->registerIndex, 0, 0, &loadRegName);
-				fprintf(g_codeGenOutputFp, "ldr %s, [%s, #0]\n", loadRegName, intWorkRegisterName_64[0]);
+				fprintf(g_codeGenOutputFp, "fld %s,0(%s)\n", loadRegName, intWorkRegisterName_64[0]);
 			}
 			codeGenSaveToMemoryIfPsuedoRegister(FLOAT_REG, idNode->registerIndex, loadRegName);
 		}
@@ -1042,8 +1042,8 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 			{
 				int tmp_reg_index = getRegister(INT_REG);
 				char *tmp_reg_name = intRegisterName_64[tmp_reg_index] ;
-				fprintf(g_codeGenOutputFp,"ldr %s, =_g_%s\n",tmp_reg_name,leftOp->semantic_value.identifierSemanticValue.identifierName);
-				fprintf(g_codeGenOutputFp, "str %s, [%s, #0]\n", rightOpRegName,tmp_reg_name);
+				fprintf(g_codeGenOutputFp,"la %s, _g_%s\n",tmp_reg_name,leftOp->semantic_value.identifierSemanticValue.identifierName);
+				fprintf(g_codeGenOutputFp, "fsw %s,0(%s)\n", rightOpRegName,tmp_reg_name);
 				freeRegister(INT_REG, tmp_reg_index);	
 			}
 			leftOp->registerIndex = rightOp->registerIndex;
