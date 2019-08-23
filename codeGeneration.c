@@ -175,7 +175,7 @@ void codeGenPrepareRegister(ProcessorType processorType, int regIndex,
         int pseudoIndex = regIndex - realRegisterCount;
         *regName = workRegisterName[workRegIndexIfPseudo];
         if (needToBeLoaded) {
-            fprintf(g_codeGenOutputFp, "%s %s,%d(x29)\n", loadInstruction,
+            fprintf(g_codeGenOutputFp, "%s %s,%d(fp)\n", loadInstruction,
                     *regName,
                     getPseudoRegisterCorrespondingOffset(pseudoIndex));
         }
@@ -204,7 +204,7 @@ void codeGenSaveToMemoryIfPsuedoRegister(ProcessorType processorType, int regInd
 	{
 		//pseudo register
 		int pseudoIndex = regIndex - realRegisterCount;
-		fprintf(g_codeGenOutputFp, "%s %s,%d(x29)\n", saveInstruction, regName, getPseudoRegisterCorrespondingOffset(pseudoIndex));
+		fprintf(g_codeGenOutputFp, "%s %s,%d(fp)\n", saveInstruction, regName, getPseudoRegisterCorrespondingOffset(pseudoIndex));
 	}
 }
 
@@ -312,7 +312,7 @@ void codeGen2Reg1ImmInstruction_64(ProcessorType processorType, char* instructio
 	if(processorType == INT_REG)
 	{
 		int* val = (int*)imm;
-		fprintf(g_codeGenOutputFp, "%s %s, %s, #%d\n", instruction, reg1Name, reg2Name, *val);
+		fprintf(g_codeGenOutputFp, "%s %s,%s,%d\n", instruction, reg1Name, reg2Name, *val);
 	}
 	else if(processorType == FLOAT_REG)
 	{
@@ -835,7 +835,7 @@ int codeGenCalcArrayElemenetAddress(AST_NODE* idNode)
 	 */
 
 	int shiftLeftTwoBits = 2;
-	codeGen2Reg1ImmInstruction_64(INT_REG, "lsl", linearIdxRegisterIndex, linearIdxRegisterIndex, &shiftLeftTwoBits);
+	codeGen2Reg1ImmInstruction_64(INT_REG, "sll", linearIdxRegisterIndex, linearIdxRegisterIndex, &shiftLeftTwoBits);
 
 	char* linearOffsetRegName = NULL;
 	if(!isGlobalVariable(idNode->semantic_value.identifierSemanticValue.symbolTableEntry))
@@ -843,13 +843,13 @@ int codeGenCalcArrayElemenetAddress(AST_NODE* idNode)
 		int baseOffset = idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR;
 		codeGen2Reg1ImmInstruction_64(INT_REG, "add", linearIdxRegisterIndex, linearIdxRegisterIndex, &baseOffset);
 		codeGenPrepareRegister_64(INT_REG, linearIdxRegisterIndex, 1, 0, &linearOffsetRegName);
-		fprintf(g_codeGenOutputFp, "add %s, %s, x29\n", linearOffsetRegName, linearOffsetRegName);
+		fprintf(g_codeGenOutputFp, "add %s,%s,fp\n", linearOffsetRegName, linearOffsetRegName);
 	}
 	else
 	{
-		fprintf(g_codeGenOutputFp, "ldr %s,= _g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
+		fprintf(g_codeGenOutputFp, "la %s, _g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
 		codeGenPrepareRegister_64(INT_REG, linearIdxRegisterIndex, 1, 1, &linearOffsetRegName);
-		fprintf(g_codeGenOutputFp, "add %s, %s, %s\n", linearOffsetRegName, linearOffsetRegName, intWorkRegisterName_64[0]);
+		fprintf(g_codeGenOutputFp, "add %s,%s,%s\n", linearOffsetRegName, linearOffsetRegName, intWorkRegisterName_64[0]);
 	}
 
 	codeGenSaveToMemoryIfPsuedoRegister(INT_REG, linearIdxRegisterIndex, linearOffsetRegName);
@@ -913,7 +913,7 @@ void codeGenVariableReference(AST_NODE* idNode)
 				char* dstRegName = NULL;
 				idNode->registerIndex = getRegister(INT_REG);
 				codeGenPrepareRegister(INT_REG, idNode->registerIndex, 0, 0, &dstRegName);
-				fprintf(g_codeGenOutputFp, "ldr %s, [%s, #0]\n",dstRegName , elementAddressRegName);
+				fprintf(g_codeGenOutputFp, "ld %s,0(%s)\n",dstRegName , elementAddressRegName);
 				freeRegister(INT_REG, elementAddressRegIndex);
 
 				codeGenSaveToMemoryIfPsuedoRegister(INT_REG, idNode->registerIndex, dstRegName);
@@ -1059,7 +1059,7 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 		{
 			char* rightOpRegName = NULL;
 			codeGenPrepareRegister(INT_REG, rightOp->registerIndex, 1, 1, &rightOpRegName);
-			fprintf(g_codeGenOutputFp, "str %s, [%s, #0]\n", rightOpRegName, elementAddressRegName);
+			fprintf(g_codeGenOutputFp, "sw %s,0(%s)\n", rightOpRegName, elementAddressRegName);
 
 			leftOp->registerIndex = rightOp->registerIndex;
 		}
