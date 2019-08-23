@@ -558,19 +558,19 @@ void codeGenExprNode(AST_NODE* exprNode)
 			{
 				case BINARY_OP_ADD:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fadd", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fadd.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_SUB:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fsub", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fsub.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_MUL:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fmul", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fmul.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_DIV:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fdiv", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fdiv.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_EQ:
 					exprNode->registerIndex = getRegister(INT_REG);
@@ -810,7 +810,7 @@ void codeGenFunctionCall(AST_NODE* functionCallNode)
 			char* returnfloatRegName = NULL;
 			codeGenPrepareRegister(FLOAT_REG, functionCallNode->registerIndex, 0, 0, &returnfloatRegName);
 
-			fprintf(g_codeGenOutputFp, "fmv.s %s, s0\n", returnfloatRegName);
+			fprintf(g_codeGenOutputFp, "fmv.s %s,fa0\n", returnfloatRegName);
 
 			codeGenSaveToMemoryIfPsuedoRegister(INT_REG, functionCallNode->registerIndex, returnfloatRegName);
 		}
@@ -886,8 +886,11 @@ void codeGenVariableReference(AST_NODE* idNode)
 			if(!isGlobalVariable(idNode->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
 				codeGenPrepareRegister(FLOAT_REG, idNode->registerIndex, 0, 0, &loadRegName);
-				fprintf(g_codeGenOutputFp, "ldr %s, [x29, #%d]\n", loadRegName, idAttribute->offsetInAR);
-			}
+				// fprintf(g_codeGenOutputFp, "ldr %s, [x29, #%d]\n", loadRegName, idAttribute->offsetInAR);
+                fprintf(g_codeGenOutputFp,
+                        "flw %s,%d(fp)\n", loadRegName,
+                        idAttribute->offsetInAR);
+            }
 			else
 			{
 				fprintf(g_codeGenOutputFp, "ldr %s, =_g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
@@ -1027,8 +1030,14 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 			codeGenPrepareRegister(FLOAT_REG, rightOp->registerIndex, 1, 0, &rightOpRegName);
 			if(!isGlobalVariable(leftOp->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
-				fprintf(g_codeGenOutputFp, "str %s, [x29, #%d]\n", rightOpRegName, leftOp->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
-			}
+				//fprintf(g_codeGenOutputFp, "str %s, [x29, #%d]\n", rightOpRegName, leftOp->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
+                fprintf(g_codeGenOutputFp,
+                        "fsw %s,%d(fp)\n", rightOpRegName,
+                        leftOp->semantic_value
+                            .identifierSemanticValue
+                            .symbolTableEntry->attribute
+                            ->offsetInAR);
+            }
 			else
 			{
 				int tmp_reg_index = getRegister(INT_REG);
