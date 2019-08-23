@@ -640,7 +640,7 @@ void codeGenExprNode(AST_NODE* exprNode)
 					codeGen3RegInstruction(INT_REG, "mul", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_DIV:
-					codeGen3RegInstruction(INT_REG, "sdiv", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "div", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_EQ:
 					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
