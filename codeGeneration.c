@@ -886,7 +886,6 @@ void codeGenVariableReference(AST_NODE* idNode)
 			if(!isGlobalVariable(idNode->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
 				codeGenPrepareRegister(FLOAT_REG, idNode->registerIndex, 0, 0, &loadRegName);
-				// fprintf(g_codeGenOutputFp, "ldr %s, [x29, #%d]\n", loadRegName, idAttribute->offsetInAR);
                 fprintf(g_codeGenOutputFp,
                         "flw %s,%d(fp)\n", loadRegName,
                         idAttribute->offsetInAR);
@@ -895,7 +894,7 @@ void codeGenVariableReference(AST_NODE* idNode)
 			{
 				fprintf(g_codeGenOutputFp, "la %s, _g_%s\n", intWorkRegisterName_64[0], idNode->semantic_value.identifierSemanticValue.identifierName);
 				codeGenPrepareRegister(FLOAT_REG, idNode->registerIndex, 0, 0, &loadRegName);
-				fprintf(g_codeGenOutputFp, "fld %s,0(%s)\n", loadRegName, intWorkRegisterName_64[0]);
+				fprintf(g_codeGenOutputFp, "flw %s,0(%s)\n", loadRegName, intWorkRegisterName_64[0]);
 			}
 			codeGenSaveToMemoryIfPsuedoRegister(FLOAT_REG, idNode->registerIndex, loadRegName);
 		}
@@ -913,7 +912,7 @@ void codeGenVariableReference(AST_NODE* idNode)
 				char* dstRegName = NULL;
 				idNode->registerIndex = getRegister(INT_REG);
 				codeGenPrepareRegister(INT_REG, idNode->registerIndex, 0, 0, &dstRegName);
-				fprintf(g_codeGenOutputFp, "ld %s,0(%s)\n",dstRegName , elementAddressRegName);
+				fprintf(g_codeGenOutputFp, "lw %s,0(%s)\n",dstRegName , elementAddressRegName);
 				freeRegister(INT_REG, elementAddressRegIndex);
 
 				codeGenSaveToMemoryIfPsuedoRegister(INT_REG, idNode->registerIndex, dstRegName);
@@ -927,7 +926,7 @@ void codeGenVariableReference(AST_NODE* idNode)
 				char* elementAddressRegName = NULL;
 				codeGenPrepareRegister(INT_REG, elementAddressRegIndex, 1, 0, &elementAddressRegName);
 
-				fprintf(g_codeGenOutputFp, "ldr %s, [%s, #0]\n", dstRegName, elementAddressRegName);
+				fprintf(g_codeGenOutputFp, "flw %s,0(%s)\n", dstRegName, elementAddressRegName);
 				codeGenSaveToMemoryIfPsuedoRegister(FLOAT_REG, idNode->registerIndex, dstRegName);
 
 				freeRegister(INT_REG, elementAddressRegIndex);
@@ -1030,7 +1029,6 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 			codeGenPrepareRegister(FLOAT_REG, rightOp->registerIndex, 1, 0, &rightOpRegName);
 			if(!isGlobalVariable(leftOp->semantic_value.identifierSemanticValue.symbolTableEntry))
 			{
-				//fprintf(g_codeGenOutputFp, "str %s, [x29, #%d]\n", rightOpRegName, leftOp->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->offsetInAR);
                 fprintf(g_codeGenOutputFp,
                         "fsw %s,%d(fp)\n", rightOpRegName,
                         leftOp->semantic_value
@@ -1068,7 +1066,7 @@ void codeGenAssignmentStmt(AST_NODE* assignmentStmtNode)
 			char* rightOpRegName = NULL;
 			codeGenPrepareRegister(FLOAT_REG, rightOp->registerIndex, 1, 0, &rightOpRegName);
 
-			fprintf(g_codeGenOutputFp, "str %s, [%s, #0]\n", rightOpRegName, elementAddressRegName);
+			fprintf(g_codeGenOutputFp, "fsw %s,0(%s)\n", rightOpRegName, elementAddressRegName);
 
 			leftOp->registerIndex = rightOp->registerIndex;
 		}
