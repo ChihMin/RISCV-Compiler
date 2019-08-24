@@ -631,49 +631,64 @@ void codeGenExprNode(AST_NODE* exprNode)
 			switch(exprNode->semantic_value.exprSemanticValue.op.binaryOp)
 			{
 				case BINARY_OP_ADD:
-					codeGen3RegInstruction(INT_REG, "add", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "addw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_SUB:
-					codeGen3RegInstruction(INT_REG, "sub", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "subw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_MUL:
-					codeGen3RegInstruction(INT_REG, "mul", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "mulw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_DIV:
-					codeGen3RegInstruction(INT_REG, "div", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "divw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_EQ:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "eq");
+					codeGen3RegInstruction(INT_REG, "sub", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
+                    codeGen2RegInstruction(INT_REG, "seqz", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case BINARY_OP_GE:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "ge");
+					codeGen3RegInstruction(INT_REG, "slt", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
+                    codeGen2RegInstruction(INT_REG, "seqz", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case BINARY_OP_LE:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "le");
-
+					codeGen3RegInstruction(INT_REG, "sgt", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
+                    codeGen2RegInstruction(INT_REG, "seqz", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case BINARY_OP_NE:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "ne");
+					codeGen3RegInstruction(INT_REG, "sub", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
+                    codeGen2RegInstruction(INT_REG, "snez", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case BINARY_OP_GT:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "gt");
-
-
+					codeGen3RegInstruction(INT_REG, "sgt", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_LT:
-					codeGen2RegInstruction(INT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "lt");
+					codeGen3RegInstruction(INT_REG, "slt", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_AND:
-					codeGenLogicalInstruction(INT_REG, "and", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGenLogicalInstruction(INT_REG, "and", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_OR:
-					codeGenLogicalInstruction(INT_REG, "orr", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGenLogicalInstruction(INT_REG, "orr", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				default:
 					printf("Unhandled case in void evaluateExprValue(AST_NODE* exprNode)\n");
@@ -697,7 +712,7 @@ void codeGenExprNode(AST_NODE* exprNode)
 					break;
 				case UNARY_OP_NEGATIVE:
 					exprNode->registerIndex = operand->registerIndex;
-					codeGen2RegInstruction(FLOAT_REG, "fneg", exprNode->registerIndex, exprNode->registerIndex);
+					codeGen2RegInstruction(FLOAT_REG, "fneg.s", exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case UNARY_OP_LOGICAL_NEGATION:
 					exprNode->registerIndex = getRegister(INT_REG);
