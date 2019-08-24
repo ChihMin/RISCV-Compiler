@@ -285,6 +285,18 @@ void codeGen2RegInstruction(ProcessorType processorType, char* instruction, int 
 	codeGenSaveToMemoryIfPsuedoRegister(processorType, reg1Index, reg1Name);
 }
 
+void codeGenFPCmpInst(char *Inst, int Dist, int Op1, int Op2) {
+    char *DistName = NULL;
+    char *Op1Name = NULL;
+    char *Op2Name = NULL;
+    codeGenPrepareRegister(INT_REG, Dist, 0, 0, &DistName);
+    codeGenPrepareRegister(FLOAT_REG, Op1, 1, 0, &Op1Name);
+    codeGenPrepareRegister(FLOAT_REG, Op2, 1, 1, &Op2Name);
+	fprintf(g_codeGenOutputFp, "%s %s, %s, %s\n", 
+            Inst, DistName, Op1Name, Op2Name);
+    codeGenSaveToMemoryIfPsuedoRegister(FLOAT_REG, Op1, Op1Name);
+}
+
 void codeGen3RegInstruction(ProcessorType processorType, char* instruction, int reg1Index, int reg2Index, int reg3Index)
 {
 	char* reg1Name = NULL;
@@ -558,64 +570,78 @@ void codeGenExprNode(AST_NODE* exprNode)
 			{
 				case BINARY_OP_ADD:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fadd.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fadd.s", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_SUB:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fsub.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fsub.s", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_MUL:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fmul.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fmul.s", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_DIV:
 					exprNode->registerIndex = leftOp->registerIndex;
-					codeGen3RegInstruction(FLOAT_REG, "fdiv.s", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(FLOAT_REG, "fdiv.s", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_EQ:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "cmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "eq");
+					codeGenFPCmpInst("feq.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_GE:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "fcmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "ge");
+					codeGenFPCmpInst("fge.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_LE:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "fcmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "le");
+					codeGenFPCmpInst("fle.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_NE:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "fcmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "ne");
+					codeGenFPCmpInst("feq.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
+                    codeGen2RegInstruction(INT_REG, "seqz", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_GT:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "fcmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "ge");
+					codeGenFPCmpInst("fgt.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_LT:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGen2RegInstruction(FLOAT_REG, "fcmp", leftOp->registerIndex, rightOp->registerIndex);
-					codeGenSetReg_cond(INT_REG, "cset",exprNode->registerIndex, "lt");
+					codeGenFPCmpInst("flt.s", exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_AND:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGenLogicalInstruction(FLOAT_REG, "and", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGenLogicalInstruction(FLOAT_REG, "and", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				case BINARY_OP_OR:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGenLogicalInstruction(FLOAT_REG, "orr", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGenLogicalInstruction(FLOAT_REG, "orr", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
 					break;
 				default:
@@ -631,16 +657,24 @@ void codeGenExprNode(AST_NODE* exprNode)
 			switch(exprNode->semantic_value.exprSemanticValue.op.binaryOp)
 			{
 				case BINARY_OP_ADD:
-					codeGen3RegInstruction(INT_REG, "addw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "addw", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_SUB:
-					codeGen3RegInstruction(INT_REG, "subw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "subw", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_MUL:
-					codeGen3RegInstruction(INT_REG, "mulw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "mulw", 
+                        exprNode->registerIndex, 
+                        leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_DIV:
-					codeGen3RegInstruction(INT_REG, "divw", exprNode->registerIndex, leftOp->registerIndex, rightOp->registerIndex);
+					codeGen3RegInstruction(INT_REG, "divw", 
+                        exprNode->registerIndex, leftOp->registerIndex, 
+                        rightOp->registerIndex);
 					break;
 				case BINARY_OP_EQ:
 					codeGen3RegInstruction(INT_REG, "sub", 
