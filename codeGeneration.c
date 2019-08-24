@@ -23,6 +23,7 @@ void codeGen3RegInstruction(ProcessorType processorType, char* instruction, int 
 void codeGen2Reg1ImmInstruction(ProcessorType processorType, char* instruction, int reg1Index, int reg2Index, void* imm);
 int codeGenConvertFromIntToFloat(int intRegIndex);
 int codeGenConvertFromFloatToInt(int floatRegIndex);
+void codeGenFPCmpInst(char *Inst, int Dist, int Op1, int Op2);
 //*************************
 
 void codeGenProgramNode(AST_NODE *programNode);
@@ -241,17 +242,14 @@ void codeGenLogicalInstruction(ProcessorType processorType, char *instruction, i
 	}
 	else if(processorType == INT_REG)
 	{
-		int zero = 0;
 		boolReg1Index = srcReg1Index;
 		boolReg2Index = srcReg2Index;
-		codeGen1Reg1ImmInstruction(INT_REG, "cmp", srcReg1Index, &zero);
-		codeGenSetReg_cond(INT_REG, "cset",srcReg1Index, "ne");
-		codeGen1Reg1ImmInstruction(INT_REG, "cmp", srcReg2Index, &zero);
-		codeGenSetReg_cond(INT_REG, "cset",srcReg2Index, "ne");
-
+        codeGen2RegInstruction(INT_REG, "snez", boolReg1Index, srcReg1Index);
+        codeGen2RegInstruction(INT_REG, "snez", boolReg2Index, srcReg2Index);
 	}
 
-	codeGen3RegInstruction(INT_REG, instruction, dstRegIndex, boolReg1Index, boolReg2Index);
+	codeGen3RegInstruction(INT_REG, instruction, 
+        dstRegIndex, boolReg1Index, boolReg2Index);
 
 	if(processorType == FLOAT_REG)
 	{
@@ -639,7 +637,7 @@ void codeGenExprNode(AST_NODE* exprNode)
 					break;
 				case BINARY_OP_OR:
 					exprNode->registerIndex = getRegister(INT_REG);
-					codeGenLogicalInstruction(FLOAT_REG, "orr", 
+					codeGenLogicalInstruction(FLOAT_REG, "or", 
                         exprNode->registerIndex, 
                         leftOp->registerIndex, rightOp->registerIndex);
 					freeRegister(FLOAT_REG, leftOp->registerIndex);
@@ -720,7 +718,7 @@ void codeGenExprNode(AST_NODE* exprNode)
                         leftOp->registerIndex, rightOp->registerIndex);
 					break;
 				case BINARY_OP_OR:
-					codeGenLogicalInstruction(INT_REG, "orr", 
+					codeGenLogicalInstruction(INT_REG, "or", 
                         exprNode->registerIndex, 
                         leftOp->registerIndex, rightOp->registerIndex);
 					break;
@@ -746,7 +744,8 @@ void codeGenExprNode(AST_NODE* exprNode)
 					break;
 				case UNARY_OP_NEGATIVE:
 					exprNode->registerIndex = operand->registerIndex;
-					codeGen2RegInstruction(FLOAT_REG, "fneg.s", exprNode->registerIndex, exprNode->registerIndex);
+					codeGen2RegInstruction(FLOAT_REG, "fneg.s", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				case UNARY_OP_LOGICAL_NEGATION:
 					exprNode->registerIndex = getRegister(INT_REG);
@@ -1165,24 +1164,32 @@ void codeGenWhileStmt(AST_NODE* whileStmtNode)
 	{
 		char* boolRegName = NULL;
 		codeGenPrepareRegister(INT_REG, boolExpression->registerIndex, 1, 0, &boolRegName);
-		fprintf(g_codeGenOutputFp, "cmp %s, #0\n", boolRegName);
-		fprintf(g_codeGenOutputFp, "beq _whileExitLabel_%d\n",labelNumber);
+		fprintf(g_codeGenOutputFp, "beqz %s, _whileExitLabel_%d\n",
+            boolRegName, labelNumber);
 		freeRegister(INT_REG, boolExpression->registerIndex);
 	}
 	else if(boolExpression->dataType == FLOAT_TYPE)
 	{
-		fprintf(g_codeGenOutputFp, "ldr %s, _CONSTANT_%d\n", floatWorkRegisterName[0], constantZeroLabelNumber);
-		char* boolRegName = NULL;
+		fprintf(g_codeGenOutputFp, "la %s, _CONSTANT_%d\n", 
+            intWorkRegisterName_64[0], constantZeroLabelNumber);
+		fprintf(g_codeGenOutputFp, "flw %s,0(%s)\n", 
+            floatWorkRegisterName[0], intWorkRegisterName_64[0]);
+		
+        char* boolRegName = NULL;
 		codeGenPrepareRegister(FLOAT_REG, boolExpression->registerIndex, 1, 1, &boolRegName);
-		fprintf(g_codeGenOutputFp, "fcmp %s, %s\n", boolRegName, floatWorkRegisterName[0]);
-		fprintf(g_codeGenOutputFp, "beq _whileExitLabel_%d\n", labelNumber);
+        
+        fprintf(g_codeGenOutputFp, "feq.s %s,%s,%s\n", 
+            intWorkRegisterName_64[0], 
+            boolRegName, floatWorkRegisterName[0]);
+        fprintf(g_codeGenOutputFp, "bnez %s,_whileExitLabel_%d\n", 
+            intWorkRegisterName_64[0], labelNumber);
 		freeRegister(FLOAT_REG, boolExpression->registerIndex);
 	}
 
 	AST_NODE* bodyNode = boolExpression->rightSibling;
 	codeGenStmtNode(bodyNode);
 
-	fprintf(g_codeGenOutputFp, "b _whileTestLabel_%d\n", labelNumber);
+	fprintf(g_codeGenOutputFp, "j _whileTestLabel_%d\n", labelNumber);
 	fprintf(g_codeGenOutputFp, "_whileExitLabel_%d:\n", labelNumber);
 }
 
