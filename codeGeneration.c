@@ -770,9 +770,8 @@ void codeGenExprNode(AST_NODE* exprNode)
 					break;
 				case UNARY_OP_LOGICAL_NEGATION:
 					exprNode->registerIndex = operand->registerIndex;
-					codeGenCmp0Instruction(INT_REG,"cmp",exprNode->registerIndex,0);
-					codeGenSetReg(INT_REG, "mov",exprNode->registerIndex, 0);
-					codeGenSetReg(INT_REG, "moveq",exprNode->registerIndex, 1);
+					codeGen2RegInstruction(INT_REG, "seqz", 
+                        exprNode->registerIndex, exprNode->registerIndex);
 					break;
 				default:
 					printf("Unhandled case in void evaluateExprValue(AST_NODE* exprNode)\n");
@@ -1219,8 +1218,8 @@ void codeGenIfStmt(AST_NODE* ifStmtNode)
 	{
 		char* boolRegName = NULL;
 		codeGenPrepareRegister(INT_REG, boolExpression->registerIndex, 1, 0, &boolRegName);
-		fprintf(g_codeGenOutputFp, "cmp %s, #0\n", boolRegName);
-		fprintf(g_codeGenOutputFp, "beq _elseLabel_%d\n", labelNumber);
+		// fprintf(g_codeGenOutputFp, "cmp %s, #0\n", boolRegName);
+		fprintf(g_codeGenOutputFp, "beqz %s, _elseLabel_%d\n", boolRegName, labelNumber);
 		freeRegister(INT_REG, boolExpression->registerIndex);
 	}
 	else if(boolExpression->dataType == FLOAT_TYPE)
@@ -1238,7 +1237,7 @@ void codeGenIfStmt(AST_NODE* ifStmtNode)
 	AST_NODE* ifBodyNode = boolExpression->rightSibling;
 	codeGenStmtNode(ifBodyNode);
 
-	fprintf(g_codeGenOutputFp, "b _ifExitLabel_%d\n", labelNumber);
+	fprintf(g_codeGenOutputFp, "j _ifExitLabel_%d\n", labelNumber);
 	fprintf(g_codeGenOutputFp, "_elseLabel_%d:\n", labelNumber);
 	AST_NODE* elsePartNode = ifBodyNode->rightSibling;
 	codeGenStmtNode(elsePartNode);
